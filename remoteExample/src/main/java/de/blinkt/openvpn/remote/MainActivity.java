@@ -47,8 +47,8 @@ public class MainActivity extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.apiso) {
-            Toast toast = Toast.makeText(this, "AP Isolation is now Enabled", Toast.LENGTH_SHORT);
-            return true;
+            Toast toast = Toast.makeText(MainActivity.this, "AP Isolation is now Enabled", Toast.LENGTH_SHORT);
+            toast.show();
         }
 
         return super.onOptionsItemSelected(item);
