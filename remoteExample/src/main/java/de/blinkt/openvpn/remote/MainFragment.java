@@ -5,6 +5,11 @@
 
 package de.blinkt.openvpn.remote;
 
+import static android.app.ProgressDialog.show;
+
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.ComponentName;
@@ -21,6 +26,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,22 +50,29 @@ import de.blinkt.openvpn.api.IOpenVPNStatusCallback;
 public class MainFragment extends Fragment implements View.OnClickListener, Handler.Callback {
 
     private TextView mHelloWorld;
-    private Button mStartVpn;
+    //    private Button mStartVpn;
     private TextView mMyIp;
     private TextView mStatus;
+    private ProgressBar progressBar;
+    private Button disconnect;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_main, container, false);
         v.findViewById(R.id.disconnect).setOnClickListener(this);
+        disconnect = v.findViewById(R.id.disconnect);
+        disconnect.setVisibility(View.GONE);
+
         v.findViewById(R.id.getMyIP).setOnClickListener(this);
         v.findViewById(R.id.startembedded).setOnClickListener(this);
-        v.findViewById(R.id.addNewProfile).setOnClickListener(this);
-        v.findViewById(R.id.addNewProfileEdit).setOnClickListener(this);
-        mHelloWorld = (TextView) v.findViewById(R.id.helloworld);
-        mStartVpn = (Button) v.findViewById(R.id.startVPN);
-        mStatus = (TextView) v.findViewById(R.id.status);
+        progressBar =(ProgressBar) v.findViewById(R.id.progressBar);
+//        v.findViewById(R.id.addNewProfile).setOnClickListener(this);
+//        v.findViewById(R.id.addNewProfileEdit).setOnClickListener(this);
+//        mHelloWorld = (TextView) v.findViewById(R.id.helloworld);
+//        mStartVpn = (Button) v.findViewById(R.id.startVPN);
+//        mStatus = (TextView) v.findViewById(R.id.status);
         mMyIp = (TextView) v.findViewById(R.id.MyIpText);
+        mStatus = (TextView) v.findViewById(R.id.status);
 
 
         return v;
@@ -203,21 +216,21 @@ public class MainFragment extends Fragment implements View.OnClickListener, Hand
             if (list.size() > 5)
                 all +="\n And some profiles....";
 
-            if(list.size()> 0) {
-                Button b= mStartVpn;
-                b.setOnClickListener(this);
-                b.setVisibility(View.VISIBLE);
-                b.setText(list.get(0).mName);
-                mStartUUID = list.get(0).mUUID;
-            }
+//            if(list.size()> 0) {
+//                Button b= mStartVpn;
+//                b.setOnClickListener(this);
+//                b.setVisibility(View.VISIBLE);
+//                b.setText(list.get(0).mName);
+//                mStartUUID = list.get(0).mUUID;
+//            }
 
 
 
-           mHelloWorld.setText(all);
+//           mHelloWorld.setText(all);
 
         } catch (RemoteException e) {
             // TODO Auto-generated catch block
-            mHelloWorld.setText(e.getMessage());
+//            mHelloWorld.setText(e.getMessage());
         }
     }
 
@@ -233,17 +246,59 @@ public class MainFragment extends Fragment implements View.OnClickListener, Hand
 
     @Override
     public void onClick(View v) {
+
+        // Create the fade-in animation (alpha from 0 to 1)
+        ObjectAnimator fadeIn = ObjectAnimator.ofFloat(mStatus, "alpha", 0f, 1f);
+        fadeIn.setDuration(1000);  // 1 second
+
+        // Create the fade-out animation (alpha from 1 to 0)
+        ObjectAnimator fadeOut = ObjectAnimator.ofFloat(mStatus, "alpha", 1f, 0f);
+        fadeOut.setDuration(2000);  // 2 seconds
+
+        // Combine the fade-in and fade-out animations
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.playSequentially(fadeIn, fadeOut);
+
+        // Add a listener to repeat the animation
+        animatorSet.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                // Restart the animation when it ends
+                animatorSet.start();
+            }
+
+            @Override
+            public void onAnimationStart(Animator animation) {
+                // No-op
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                // No-op
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+                // No-op
+            }
+        });
+
+        // Start the animation initially
+        mStatus.setVisibility(View.VISIBLE);  // Ensure the TextView is visible before animation starts
+        animatorSet.start();
         switch (v.getId()) {
-            case R.id.startVPN:
-                try {
-                    prepareStartProfile(START_PROFILE_BYUUID);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                break;
+//            case R.id.startVPN:
+//                try {
+//                    prepareStartProfile(START_PROFILE_BYUUID);
+//                } catch (RemoteException e) {
+//                    e.printStackTrace();
+//                }
+//                break;
             case R.id.disconnect:
                 try {
                     mService.disconnect();
+                    disconnect.setVisibility(View.GONE);
+
                 } catch (RemoteException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -272,21 +327,36 @@ public class MainFragment extends Fragment implements View.OnClickListener, Hand
             case R.id.startembedded:
                 try {
                     prepareStartProfile(START_PROFILE_EMBEDDED);
+                    progressBar.setVisibility(View.VISIBLE);
+
+                    // Hide the ProgressBar after 4 seconds (4000 milliseconds)
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressBar.setVisibility(View.GONE);
+                            disconnect.setVisibility(View.VISIBLE);
+                        }
+                    }, 3000);
                 } catch (RemoteException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
+                System.out.println(mMyIp.getText().toString());
+                if(mMyIp.getText().toString().equals("13.235.248.206")){
+
+                }
+
                 break;
 
-            case R.id.addNewProfile:
-            case R.id.addNewProfileEdit:
-                int action = (v.getId() == R.id.addNewProfile) ? PROFILE_ADD_NEW : PROFILE_ADD_NEW_EDIT;
-                try {
-                    prepareStartProfile(action);
-                } catch (RemoteException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+//            case R.id.addNewProfile:
+//            case R.id.addNewProfileEdit:
+//                int action = (v.getId() == R.id.addNewProfile) ? PROFILE_ADD_NEW : PROFILE_ADD_NEW_EDIT;
+//                try {
+//                    prepareStartProfile(action);
+//                } catch (RemoteException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                }
             default:
                 break;
         }
@@ -322,13 +392,13 @@ public class MainFragment extends Fragment implements View.OnClickListener, Hand
                 }
 
             }
-            CheckBox startCB = getView().findViewById(R.id.startafterAdding);
-            if (requestCode == PROFILE_ADD_NEW) {
-                startEmbeddedProfile(true, false, startCB.isSelected());
-            }
-            else if (requestCode == PROFILE_ADD_NEW_EDIT) {
-                startEmbeddedProfile(true, true, startCB.isSelected());
-            }
+//            CheckBox startCB = getView().findViewById(R.id.startafterAdding);
+//            if (requestCode == PROFILE_ADD_NEW) {
+//                startEmbeddedProfile(true, false, startCB.isSelected());
+//            }
+//            else if (requestCode == PROFILE_ADD_NEW_EDIT) {
+//                startEmbeddedProfile(true, true, startCB.isSelected());
+//            }
         }
     };
 
